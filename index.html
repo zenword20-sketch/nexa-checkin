@@ -79,8 +79,8 @@
     margin-bottom: 24px;
     line-height: 1.7;
   }
-  .id-box {
-    font-size: 20px;
+  .name-box {
+    font-size: 22px;
     font-weight: 700;
     color: #1E3A5F;
     padding: 18px;
@@ -89,9 +89,6 @@
     border: 1px solid #BAE6FD;
     margin-bottom: 20px;
     line-height: 1.5;
-    letter-spacing: 0.5px;
-    font-family: monospace;
-    direction: ltr;
   }
   .time-badge {
     display: inline-block;
@@ -163,10 +160,30 @@
   <div class="card" id="card"></div>
   <script>
     const params = new URLSearchParams(window.location.search);
+    const n64 = params.get('n') || '';
     const teacherId = params.get('id') || '';
     const operation = params.get('op') || 'in';
     const school = params.get('s') || 'نظام الإدارة المدرسية';
     const card = document.getElementById('card');
+
+    // ═══ فك تشفير Base64 URL-safe للاسم العربي ═══
+    function decodeBase64Url(str) {
+      if (!str) return '';
+      try {
+        let s = str.replace(/-/g, '+').replace(/_/g, '/');
+        while (s.length % 4) s += '=';
+        const binary = atob(s);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new TextDecoder('utf-8').decode(bytes);
+      } catch (e) {
+        return '';
+      }
+    }
+
+    const name = decodeBase64Url(n64);
 
     // ═══ توليد التاريخ والوقت ═══
     const now = new Date();
@@ -180,7 +197,7 @@
     if (hour12 === 0) hour12 = 12;
     const timeStr = `${hour12.toString().padStart(2, '0')}:${minute} ${period}`;
 
-    if (!teacherId) {
+    if (!name && !teacherId) {
       card.innerHTML = `
         <div class="header">
           <h2>جمهورية العراق - وزارة التربية</h2>
@@ -195,10 +212,11 @@
             </svg>
           </div>
           <div class="error-title">رابط غير صالح</div>
-          <p class="error-msg">لم يتم التعرف على معرّف الأستاذ.<br>يرجى مسح الباركود مرة أخرى من نظام المدرسة.</p>
+          <p class="error-msg">لم يتم التعرف على معلومات الأستاذ.<br>يرجى مسح الباركود مرة أخرى.</p>
         </div>
       `;
     } else {
+      const displayName = name || `معرّف: ${teacherId}`;
       const isCheckOut = operation === 'out';
       const isBoth = operation === 'both';
 
@@ -237,7 +255,7 @@
           </div>
           <div class="title ${colorClass}">${title}</div>
           <div class="subtitle">${subtitle}</div>
-          <div class="id-box">${escapeHtml(teacherId)}</div>
+          <div class="name-box">${escapeHtml(displayName)}</div>
           <div class="time-badge ${badgeClass}">🕐 ${timeStr}</div>
           <div class="info-list">
             <div class="info-row">
