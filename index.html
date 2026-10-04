@@ -1,30 +1,284 @@
-String _buildQrContent(TeacherStaffModel teacher) {
-  final attendance = _todayAttendance;
-  String op = 'in';
-  String timeIn = '';
-  String timeOut = '';
-
-  if (attendance != null) {
-    if (attendance.checkoutTime.isEmpty) {
-      op = 'in';
-      timeIn = attendance.time;
-    } else {
-      op = 'both';
-      timeIn = attendance.time;
-      timeOut = attendance.checkoutTime;
-    }
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الحضور</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Cairo', 'Segoe UI', sans-serif;
+    background: #F1F5F9;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
   }
+  .card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    max-width: 460px;
+    width: 100%;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .header {
+    background: #1E3A5F;
+    color: white;
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .header h2 {
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+  .header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .body {
+    padding: 36px 24px;
+    text-align: center;
+  }
+  .checkmark {
+    width: 84px;
+    height: 84px;
+    background: #D1FAE5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    animation: pop 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  }
+  .checkmark svg { width: 40px; height: 40px; stroke: #065F46; }
+  .checkmark-out { background: #FEF3C7; }
+  .checkmark-out svg { stroke: #92400E; }
+  @keyframes pop {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #065F46;
+    margin-bottom: 6px;
+  }
+  .title-out { color: #92400E; }
+  .subtitle {
+    font-size: 13px;
+    color: #6B7280;
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+  .id-box {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1E3A5F;
+    padding: 18px;
+    background: #F0F9FF;
+    border-radius: 8px;
+    border: 1px solid #BAE6FD;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    font-family: monospace;
+    direction: ltr;
+  }
+  .time-badge {
+    display: inline-block;
+    background: #D1FAE5;
+    color: #065F46;
+    padding: 10px 24px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+  .time-badge-out { background: #FEF3C7; color: #92400E; }
+  .info-list {
+    text-align: right;
+    border-top: 1px solid #F3F4F6;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid #F3F4F6;
+    font-size: 13.5px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #6B7280; }
+  .info-value { color: #111827; font-weight: 600; }
+  .footer {
+    background: #F9FAFB;
+    padding: 18px 20px;
+    text-align: center;
+    border-top: 1px solid #E5E7EB;
+  }
+  .footer p {
+    font-size: 12px;
+    color: #6B7280;
+    line-height: 1.7;
+  }
+  .countdown {
+    font-size: 13px;
+    color: #1E3A5F;
+    font-weight: 700;
+    margin-top: 10px;
+  }
+  .error {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .error-icon {
+    width: 84px;
+    height: 84px;
+    background: #FEE2E2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+  .error-icon svg { width: 40px; height: 40px; stroke: #991B1B; }
+  .error-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #991B1B;
+    margin-bottom: 8px;
+  }
+  .error-msg { color: #6B7280; font-size: 14px; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="card" id="card"></div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const teacherId = params.get('id') || '';
+    const operation = params.get('op') || 'in';
+    const school = params.get('s') || 'نظام الإدارة المدرسية';
+    const card = document.getElementById('card');
 
-  final params = <String, String>{
-    'n': teacher.fullName,
-    'r': teacher.roleTitle,
-    'op': op,
-    'ti': timeIn,
-    's': _schoolName,
-    if (timeOut.isNotEmpty) 'to': timeOut,
-  };
-  final query = params.entries
-      .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-      .join('&');
-  return '$_checkinBaseUrl?$query';
-}
+    // ═══ توليد التاريخ والوقت ═══
+    const now = new Date();
+    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const dayName = dayNames[now.getDay()];
+    const dateStr = `${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
+    let hour = now.getHours();
+    const minute = now.getMinutes().toString().padStart(2, '0');
+    const period = hour < 12 ? 'ص' : 'م';
+    let hour12 = hour % 12;
+    if (hour12 === 0) hour12 = 12;
+    const timeStr = `${hour12.toString().padStart(2, '0')}:${minute} ${period}`;
+
+    if (!teacherId) {
+      card.innerHTML = `
+        <div class="header">
+          <h2>جمهورية العراق - وزارة التربية</h2>
+          <h1>${escapeHtml(school)}</h1>
+        </div>
+        <div class="error">
+          <div class="error-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M15 9l-6 6"/>
+              <path d="M9 9l6 6"/>
+            </svg>
+          </div>
+          <div class="error-title">رابط غير صالح</div>
+          <p class="error-msg">لم يتم التعرف على معرّف الأستاذ.<br>يرجى مسح الباركود مرة أخرى من نظام المدرسة.</p>
+        </div>
+      `;
+    } else {
+      const isCheckOut = operation === 'out';
+      const isBoth = operation === 'both';
+
+      let title, subtitle, iconSvg, colorClass, badgeClass;
+
+      if (isBoth) {
+        title = 'تم تسجيل الدخول والمغادرة';
+        subtitle = 'يوماً موفقاً، نراك غداً بإذن الله';
+        iconSvg = `<path d="M20 6L9 17l-5-5"/>`;
+        colorClass = '';
+        badgeClass = '';
+      } else if (isCheckOut) {
+        title = 'تم تسجيل مغادرتك';
+        subtitle = 'شكراً لجهودك اليوم، نتمنى لك راحة طيبة';
+        iconSvg = `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`;
+        colorClass = 'title-out';
+        badgeClass = 'time-badge-out';
+      } else {
+        title = 'تم تسجيل حضورك';
+        subtitle = 'أهلاً وسهلاً بك، نتمنى لك يوماً موفقاً';
+        iconSvg = `<path d="M20 6L9 17l-5-5"/>`;
+        colorClass = '';
+        badgeClass = '';
+      }
+
+      card.innerHTML = `
+        <div class="header">
+          <h2>جمهورية العراق - وزارة التربية</h2>
+          <h1>${escapeHtml(school)}</h1>
+        </div>
+        <div class="body">
+          <div class="checkmark ${isCheckOut || isBoth ? 'checkmark-out' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              ${iconSvg}
+            </svg>
+          </div>
+          <div class="title ${colorClass}">${title}</div>
+          <div class="subtitle">${subtitle}</div>
+          <div class="id-box">${escapeHtml(teacherId)}</div>
+          <div class="time-badge ${badgeClass}">🕐 ${timeStr}</div>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">اليوم</span>
+              <span class="info-value">${dayName}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">التاريخ</span>
+              <span class="info-value">${dateStr}</span>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <p>يمكنك الآن إغلاق هذه الصفحة والعودة إلى عملك</p>
+          <div class="countdown" id="countdown"></div>
+        </div>
+      `;
+
+      let seconds = 20;
+      const el = document.getElementById('countdown');
+      function tick() {
+        if (seconds > 0) {
+          el.textContent = `سيتم إغلاق الصفحة خلال ${seconds} ثانية`;
+          seconds--;
+          setTimeout(tick, 1000);
+        } else {
+          el.textContent = 'يمكنك إغلاق الصفحة الآن';
+        }
+      }
+      tick();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+  </script>
+</body>
+</html>
